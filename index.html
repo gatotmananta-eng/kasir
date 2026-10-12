@@ -611,28 +611,63 @@
         }
 
         async function processCheckout() {
-            if (cart.length === 0) { alert('Keranjang kosong!'); return; }
-            const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-            const cost = cart.reduce((sum, i) => sum + (i.cost * i.qty), 0);
-            const paid = getRawPayment();
-            if (paid < total) { alert('Pembayaran kurang!'); return; }
+    // Mencegah klik ganda (jika sedang proses, abaikan klik berikutnya)
+    if (isProcessingCheckout) return; 
 
-            cart.forEach(item => {
-                const p = products.find(prod => prod.id === item.id);
-                if (p) p.stock -= (item.qty * item.ratio);
-            });
+    if (cart.length === 0) { 
+        alert('Keranjang kosong!'); 
+        return; 
+    }
 
-            const newTrx = {
-                id: 'TRX-' + Date.now().toString().slice(-6),
-                rawDate: new Date().toISOString(),
-                date: new Date().toLocaleString('id-ID'),
-                items: [...cart],
-                totalQty: cart.reduce((s, i) => s + i.qty, 0),
-                totalPrice: total,
-                totalProfit: total - cost,
-                payment: paid,
-                change: paid - total
-            };
+    const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    const cost = cart.reduce((sum, i) => sum + (i.cost * i.qty), 0);
+    const paid = getRawPayment();
+    
+    if (paid < total) { 
+        alert('Pembayaran kurang!'); 
+        return; 
+    }
+
+    // Kunci tombol pembayaran
+    isProcessingCheckout = true;
+
+    // Kurangi stok produk
+    cart.forEach(item => {
+        const p = products.find(prod => prod.id === item.id);
+        if (p) p.stock -= (item.qty * item.ratio);
+    });
+
+    const newTrx = {
+        id: 'TRX-' + Date.now().toString().slice(-6),
+        rawDate: new Date().toISOString(),
+        date: new Date().toLocaleString('id-ID'),
+        items: [...cart],
+        totalQty: cart.reduce((s, i) => s + i.qty, 0),
+        totalPrice: total,
+        totalProfit: total - cost,
+        payment: paid,
+        change: paid - total
+    };
+
+    transactions.unshift(newTrx);
+    saveLocalData();
+    
+    // Proses sinkronisasi ke cloud
+    await syncProductsToCloud();
+    await saveTransactionToCloud(newTrx);
+
+    showReceiptModal(newTrx);
+    cart = [];
+    document.getElementById('payment-amount').value = '';
+    renderCart();
+    renderPOSProducts();
+    renderProductTable();
+    renderTransactionTable();
+    renderReports();
+
+    // Buka kembali kunci tombol setelah selesai
+    isProcessingCheckout = false;
+}
 
             transactions.unshift(newTrx);
             saveLocalData();
