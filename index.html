@@ -405,22 +405,6 @@
             }
         }
 
-        async function deleteTransactionFromCloud(trxId) {
-            saveLocalData();
-            if (!navigator.onLine) {
-                queueOfflineAction({ action: "delete_transaction", id: trxId });
-                return;
-            }
-            try {
-                await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "delete_transaction", id: trxId })
-                });
-            } catch (err) {
-                queueOfflineAction({ action: "delete_transaction", id: trxId });
-            }
-        }
-
         function queueOfflineAction(actionObj) {
             let queue = JSON.parse(localStorage.getItem('pos_offline_queue') || '[]');
             queue.push(actionObj);
@@ -724,16 +708,6 @@
             alert('Transaksi ' + trxId + ' telah berhasil dibatalkan dan stok telah dikembalikan.');
         }
 
-        async function deleteTransaction(trxId) {
-            if (confirm('Hapus permanen transaksi ini dari riwayat?')) {
-                transactions = transactions.filter(t => t.id !== trxId);
-                saveLocalData();
-                await deleteTransactionFromCloud(trxId);
-                renderTransactionTable();
-                renderReports();
-            }
-        }
-
         function renderProductTable() {
             const tbody = document.getElementById('product-table-body');
             tbody.innerHTML = '';
@@ -877,10 +851,9 @@
                         <td class="p-4">${statusBadge}</td>
                         <td class="p-4 font-medium ${trx.status === 'DIBATALKAN' ? 'line-through text-slate-400' : ''}">Rp ${trx.totalPrice.toLocaleString('id-ID')}</td>
                         <td class="p-4 text-emerald-600 font-bold ${trx.status === 'DIBATALKAN' ? 'line-through text-slate-400' : ''}">+ Rp ${(trx.totalProfit||0).toLocaleString('id-ID')}</td>
-                        <td class="p-4 text-center space-x-1.5">
-                            <button onclick='showReceiptModal(${JSON.stringify(trx)})' class="bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded text-xs"><i class="fa-solid fa-receipt mr-1"></i> Struk</button>
+                        <td class="p-4 text-center space-x-2">
+                            <button onclick='showReceiptModal(${JSON.stringify(trx)})' class="bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded text-xs"><i class="fa-solid fa-receipt mr-1"></i> Struk</button>
                             ${cancelBtn}
-                            <button onclick="deleteTransaction('${trx.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded text-xs"><i class="fa-solid fa-trash mr-1"></i> Hapus</button>
                         </td>
                     </tr>
                 `;
