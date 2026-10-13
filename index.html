@@ -92,7 +92,7 @@
                             </div>
                         </div>
 
-                        <!-- KONTEN DINAMIS BERDASARKAN METODE PEMBAYARAN -->
+                        <!-- KONTEN DINAMIS METODE PEMBAYARAN -->
                         <div id="payment-content-cash" class="space-y-1.5">
                             <label class="text-xs font-semibold text-slate-600 uppercase">Jumlah Bayar Tunai:</label>
                             <input type="text" id="payment-amount" placeholder="Rp 0" oninput="formatRupiahInput(this)" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800 text-sm">
@@ -107,7 +107,6 @@
 
                         <div id="payment-content-qris" class="hidden space-y-2 text-center bg-slate-50 p-2 rounded-lg border">
                             <p class="text-xs font-medium text-slate-600">Scan QRIS di bawah ini:</p>
-                            <!-- Ganti link src dengan gambar QRIS toko Anda -->
                             <img src="https://instagram.fdps2-1.fna.fbcdn.net/v/t51.82787-15/843655345_18007994522996347_7915171320034120839_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=110&_nc_map=urlgen_bucketless&ig_cache_key=NDAwNjcyMTk1MTIyMTE2OTY4MA%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuODMyLnNkci5yZWd1bGFyX3Bob3RvLkMzIn0%3D&_nc_ohc=R99ED8txKysQ7kNvwH8QHds&_nc_oc=AdpJd88I0rSYsO5vUmsLicJteCKO1h9RvT7nXIheov6vsvF8hpH-tavaoZMx2Jjz1XM&_nc_zt=23&_nc_ht=instagram.fdps2-1.fna&_nc_gid=bK3uzWjFekkYfW8QPGZQFA&_nc_ss=7b2a8&oh=00_AQMaRJLCjB2n8jm3u9GWEy_QzSrKymiJw9403a-khYVdWw&oe=6AD37C67" alt="QRIS Code" class="mx-auto w-28 h-28 border bg-white p-1 rounded">
                             <p class="text-[11px] text-slate-500">Tunjukkan ke pelanggan untuk dipindai.</p>
                         </div>
@@ -115,7 +114,6 @@
                         <div id="payment-content-transfer" class="hidden space-y-1.5 text-xs bg-slate-50 p-2.5 rounded-lg border text-slate-700">
                             <p class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-building-columns text-emerald-600 mr-1"></i> Transfer Bank:</p>
                             <p>Seabank: <span class="font-mono font-bold">901191041870</span> (a.n. Dewa Gede Eka Saputra)</p>
-                          <!--  <p>Mandiri: <span class="font-mono font-bold">0987-6543-21</span> (a.n. Toko Anda)</p>-->
                             <p class="text-[10px] text-slate-500 mt-1">Pastikan nominal transfer sesuai total belanja.</p>
                         </div>
 
@@ -162,6 +160,7 @@
                                     <th class="p-4">ID Transaksi</th>
                                     <th class="p-4">Waktu</th>
                                     <th class="p-4">Metode</th>
+                                    <th class="p-4">Status</th>
                                     <th class="p-4">Total Belanja</th>
                                     <th class="p-4 text-emerald-600">Laba Bersih</th>
                                     <th class="p-4 text-center">Aksi</th>
@@ -304,7 +303,7 @@
         let transactions = [];
         let cart = [];
         let isProcessingCheckout = false;
-        let selectedPaymentMethod = 'cash'; // Default metode pembayaran
+        let selectedPaymentMethod = 'cash';
 
         function switchTab(tabId) {
             ['pos', 'products', 'transactions', 'reports'].forEach(id => {
@@ -444,7 +443,6 @@
             showSync(false);
         }
 
-        // Pengaturan Metode Pembayaran (UI Switch)
         function setPaymentMethod(method) {
             selectedPaymentMethod = method;
             ['cash', 'qris', 'transfer'].forEach(m => {
@@ -631,7 +629,6 @@
             calculateChange();
         }
 
-        // Proses Pembayaran Diperbarui Mendukung Tunai, QRIS, & Transfer
         async function processCheckout() {
             if (isProcessingCheckout) return;
 
@@ -663,6 +660,7 @@
                 rawDate: new Date().toISOString(),
                 date: new Date().toLocaleString('id-ID'),
                 paymentMethod: selectedPaymentMethod.toUpperCase(),
+                status: 'SUKSES',
                 items: [...cart],
                 totalQty: cart.reduce((s, i) => s + i.qty, 0),
                 totalPrice: total,
@@ -679,7 +677,7 @@
             showReceiptModal(newTrx);
             cart = [];
             document.getElementById('payment-amount').value = '';
-            setPaymentMethod('cash'); // Reset ke tunai
+            setPaymentMethod('cash');
             
             renderCart();
             renderPOSProducts();
@@ -690,8 +688,44 @@
             isProcessingCheckout = false;
         }
 
+        async function cancelTransaction(trxId) {
+            if (!confirm('Apakah Anda yakin ingin membatalkan transaksi ini? Stok barang akan dikembalikan ke daftar produk.')) return;
+
+            const trx = transactions.find(t => t.id === trxId);
+            if (!trx || trx.status === 'DIBATALKAN') return;
+
+            trx.items.forEach(item => {
+                const p = products.find(prod => String(prod.id) === String(item.id));
+                if (p) {
+                    p.stock += (item.qty * item.ratio);
+                }
+            });
+
+            trx.status = 'DIBATALKAN';
+
+            saveLocalData();
+            await syncProductsToCloud();
+            
+            if (navigator.onLine) {
+                try {
+                    await fetch(API_URL, {
+                        method: "POST",
+                        body: JSON.stringify({ action: "cancel_transaction", id: trxId, products: products })
+                    });
+                } catch (e) {
+                    console.error("Gagal sinkron pembatalan transaksi:", e);
+                }
+            }
+
+            renderPOSProducts();
+            renderProductTable();
+            renderTransactionTable();
+            renderReports();
+            alert('Transaksi ' + trxId + ' telah berhasil dibatalkan dan stok telah dikembalikan.');
+        }
+
         async function deleteTransaction(trxId) {
-            if (confirm('Hapus transaksi ini?')) {
+            if (confirm('Hapus permanen transaksi ini dari riwayat?')) {
                 transactions = transactions.filter(t => t.id !== trxId);
                 saveLocalData();
                 await deleteTransactionFromCloud(trxId);
@@ -819,21 +853,34 @@
             const tbody = document.getElementById('transaction-table-body');
             tbody.innerHTML = '';
             if (transactions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada riwayat transaksi</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">Belum ada riwayat transaksi</td></tr>`;
                 return;
             }
             transactions.forEach(trx => {
                 let methodBadge = `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-bold">${trx.paymentMethod || 'TUNAI'}</span>`;
+                
+                let statusBadge = trx.status === 'DIBATALKAN' 
+                    ? `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-bold">DIBATALKAN</span>` 
+                    : `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">SUKSES</span>`;
+
+                let rowClass = trx.status === 'DIBATALKAN' ? 'bg-red-50/50 opacity-75' : 'hover:bg-slate-50';
+
+                let cancelBtn = trx.status === 'DIBATALKAN'
+                    ? `<button disabled class="bg-gray-200 text-gray-400 px-2.5 py-1 rounded text-xs cursor-not-allowed"><i class="fa-solid fa-ban mr-1"></i> Batal</button>`
+                    : `<button onclick="cancelTransaction('${trx.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-semibold"><i class="fa-solid fa-rotate-left mr-1"></i> Batal</button>`;
+
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50">
+                    <tr class="${rowClass}">
                         <td class="p-4 font-mono font-semibold">${trx.id}</td>
                         <td class="p-4 text-slate-500">${trx.date}</td>
                         <td class="p-4">${methodBadge}</td>
-                        <td class="p-4 font-medium">Rp ${trx.totalPrice.toLocaleString('id-ID')}</td>
-                        <td class="p-4 text-emerald-600 font-bold">+ Rp ${(trx.totalProfit||0).toLocaleString('id-ID')}</td>
-                        <td class="p-4 text-center space-x-2">
-                            <button onclick='showReceiptModal(${JSON.stringify(trx)})' class="bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded text-xs"><i class="fa-solid fa-receipt mr-1"></i> Struk</button>
-                            <button onclick="deleteTransaction('${trx.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1 rounded text-xs"><i class="fa-solid fa-trash mr-1"></i> Hapus</button>
+                        <td class="p-4">${statusBadge}</td>
+                        <td class="p-4 font-medium ${trx.status === 'DIBATALKAN' ? 'line-through text-slate-400' : ''}">Rp ${trx.totalPrice.toLocaleString('id-ID')}</td>
+                        <td class="p-4 text-emerald-600 font-bold ${trx.status === 'DIBATALKAN' ? 'line-through text-slate-400' : ''}">+ Rp ${(trx.totalProfit||0).toLocaleString('id-ID')}</td>
+                        <td class="p-4 text-center space-x-1.5">
+                            <button onclick='showReceiptModal(${JSON.stringify(trx)})' class="bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded text-xs"><i class="fa-solid fa-receipt mr-1"></i> Struk</button>
+                            ${cancelBtn}
+                            <button onclick="deleteTransaction('${trx.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded text-xs"><i class="fa-solid fa-trash mr-1"></i> Hapus</button>
                         </td>
                     </tr>
                 `;
@@ -845,9 +892,11 @@
             const mStr = todayStr.slice(0, 7);
             let tProf = 0, mProf = 0;
             transactions.forEach(trx => {
-                const prof = trx.totalProfit || 0;
-                if (trx.rawDate?.slice(0, 10) === todayStr) tProf += prof;
-                if (trx.rawDate?.slice(0, 7) === mStr) mProf += prof;
+                if (trx.status !== 'DIBATALKAN') {
+                    const prof = trx.totalProfit || 0;
+                    if (trx.rawDate?.slice(0, 10) === todayStr) tProf += prof;
+                    if (trx.rawDate?.slice(0, 7) === mStr) mProf += prof;
+                }
             });
             document.getElementById('report-today-profit').innerText = `Rp ${tProf.toLocaleString('id-ID')}`;
             document.getElementById('report-month-profit').innerText = `Rp ${mProf.toLocaleString('id-ID')}`;
@@ -856,7 +905,7 @@
         function showReceiptModal(trx) {
             document.getElementById('receipt-date').innerText = trx.date;
             document.getElementById('receipt-id').innerText = trx.id;
-            document.getElementById('receipt-method').innerText = trx.paymentMethod || 'TUNAI';
+            document.getElementById('receipt-method').innerText = (trx.paymentMethod || 'TUNAI') + (trx.status === 'DIBATALKAN' ? ' (BATAL)' : '');
             
             const container = document.getElementById('receipt-items');
             container.innerHTML = '';
@@ -871,7 +920,7 @@
                 document.getElementById('receipt-paid').innerText = `Rp ${trx.payment.toLocaleString('id-ID')}`;
                 document.getElementById('receipt-change').innerText = `Rp ${trx.change.toLocaleString('id-ID')}`;
             } else {
-                cashInfoEl.classList.add('hidden'); // Sembunyikan kembalian jika QRIS/Transfer
+                cashInfoEl.classList.add('hidden');
             }
 
             document.getElementById('receipt-modal').classList.remove('hidden');
