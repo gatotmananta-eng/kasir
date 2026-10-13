@@ -239,6 +239,15 @@
         </div>
     </div>
 
+    <!-- MODAL PILIH SATUAN (MULTI-UNIT) -->
+    <div id="unit-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl w-full max-w-sm p-6 shadow-xl flex flex-col">
+            <h3 id="unit-modal-title" class="font-bold text-lg text-slate-800 mb-3">Pilih Satuan Jual</h3>
+            <div id="unit-options-container" class="space-y-2 mb-4"></div>
+            <button onclick="closeUnitModal()" class="w-full bg-gray-200 text-slate-700 py-2 rounded-lg text-sm">Batal</button>
+        </div>
+    </div>
+
     <!-- MODAL STRUK -->
     <div id="receipt-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-xl w-full max-w-sm p-6 shadow-xl flex flex-col">
@@ -263,11 +272,13 @@
     </div>
 
     <script>
+        // URL WEB APP GOOGLE SHEETS ANDA
         const API_URL = "https://script.google.com/macros/s/AKfycbyvIc1vCLse0fYWPGjFYDkYOmnYySXqPILuVlPtF7mHfna0S6oLpzmw7ntT_z-YoV2x/exec";
 
         let products = [];
         let transactions = [];
         let cart = [];
+        let isProcessingCheckout = false; // Pengaman klik ganda pembayaran
 
         function switchTab(tabId) {
             ['pos', 'products', 'transactions', 'reports'].forEach(id => {
@@ -291,13 +302,13 @@
         }
 
         window.onload = function() {
-            loadLocalData();
-            
-            // Pasang event listener status jaringan
+            loadLocalData(); // Muat data lokal dulu agar aplikasi cepat
+            loadDataFromCloud(); // Tarik data terbaru dari Google Sheets
+
+            // Listener status koneksi internet
             window.addEventListener('online', handleOnlineStatus);
             window.addEventListener('offline', handleOfflineStatus);
 
-            // Cek kondisi jaringan saat pertama kali dibuka
             if (navigator.onLine) {
                 handleOnlineStatus();
             } else {
@@ -311,7 +322,6 @@
 
         async function handleOnlineStatus() {
             document.getElementById('offline-banner').classList.add('hidden');
-            // Otomatis sinkronkan antrean offline & tarik data terbaru
             await syncOfflineQueueToCloud();
         }
 
@@ -410,7 +420,6 @@
         async function syncOfflineQueueToCloud() {
             showSync(true);
             try {
-                // 1. Kirim antrean offline jika ada
                 let queue = JSON.parse(localStorage.getItem('pos_offline_queue') || '[]');
                 if (queue.length > 0) {
                     await syncProductsToCloud();
@@ -422,7 +431,6 @@
                     }
                     localStorage.removeItem('pos_offline_queue');
                 }
-                // 2. Tarik data terbaru dari Cloud setelah sinkronisasi selesai
                 await loadDataFromCloud();
             } catch (err) {
                 console.error("Gagal memproses sinkronisasi offline:", err);
@@ -610,64 +618,34 @@
             calculateChange();
         }
 
+        // Fungsi Proses Pembayaran dengan Pencegahan Klik Ganda (Double Click Lock)
         async function processCheckout() {
-    // Mencegah klik ganda (jika sedang proses, abaikan klik berikutnya)
-    if (isProcessingCheckout) return; 
+            if (isProcessingCheckout) return; // Mencegah klik ganda
 
-    if (cart.length === 0) { 
-        alert('Keranjang kosong!'); 
-        return; 
-    }
+            if (cart.length === 0) { alert('Keranjang kosong!'); return; }
+            const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            const cost = cart.reduce((sum, i) => sum + (i.cost * i.qty), 0);
+            const paid = getRawPayment();
+            if (paid < total) { alert('Pembayaran kurang!'); return; }
 
-    const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    const cost = cart.reduce((sum, i) => sum + (i.cost * i.qty), 0);
-    const paid = getRawPayment();
-    
-    if (paid < total) { 
-        alert('Pembayaran kurang!'); 
-        return; 
-    }
+            isProcessingCheckout = true; // Kunci tombol
 
-    // Kunci tombol pembayaran
-    isProcessingCheckout = true;
+            cart.forEach(item => {
+                const p = products.find(prod => prod.id === item.id);
+                if (p) p.stock -= (item.qty * item.ratio);
+            });
 
-    // Kurangi stok produk
-    cart.forEach(item => {
-        const p = products.find(prod => prod.id === item.id);
-        if (p) p.stock -= (item.qty * item.ratio);
-    });
-
-    const newTrx = {
-        id: 'TRX-' + Date.now().toString().slice(-6),
-        rawDate: new Date().toISOString(),
-        date: new Date().toLocaleString('id-ID'),
-        items: [...cart],
-        totalQty: cart.reduce((s, i) => s + i.qty, 0),
-        totalPrice: total,
-        totalProfit: total - cost,
-        payment: paid,
-        change: paid - total
-    };
-
-    transactions.unshift(newTrx);
-    saveLocalData();
-    
-    // Proses sinkronisasi ke cloud
-    await syncProductsToCloud();
-    await saveTransactionToCloud(newTrx);
-
-    showReceiptModal(newTrx);
-    cart = [];
-    document.getElementById('payment-amount').value = '';
-    renderCart();
-    renderPOSProducts();
-    renderProductTable();
-    renderTransactionTable();
-    renderReports();
-
-    // Buka kembali kunci tombol setelah selesai
-    isProcessingCheckout = false;
-}
+            const newTrx = {
+                id: 'TRX-' + Date.now().toString().slice(-6),
+                rawDate: new Date().toISOString(),
+                date: new Date().toLocaleString('id-ID'),
+                items: [...cart],
+                totalQty: cart.reduce((s, i) => s + i.qty, 0),
+                totalPrice: total,
+                totalProfit: total - cost,
+                payment: paid,
+                change: paid - total
+            };
 
             transactions.unshift(newTrx);
             saveLocalData();
@@ -683,6 +661,8 @@
             renderProductTable();
             renderTransactionTable();
             renderReports();
+
+            isProcessingCheckout = false; // Buka kembali kunci tombol
         }
 
         async function deleteTransaction(trxId) {
