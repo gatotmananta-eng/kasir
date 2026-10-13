@@ -93,7 +93,7 @@
                                 <button type="button" onclick="addQuickPayment(20000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">20 Rb</button>
                                 <button type="button" onclick="addQuickPayment(50000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">50 Rb</button>
                                 <button type="button" onclick="addQuickPayment(100000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">100 Rb</button>
-                                <button type="button" onclick="clearPayment()" class="bg-red-50 hover:bg-red-100 text-red-600 py-1.5 px-1 rounded text-xs font-semibold transition">Hapus</button>
+                                <button type="button" onclick="clearPayment()" class="bg-red-50 hover:bg-red-100 text-red-600 py-1.5 px-1 rounded text-xs font-semibold transition">Reset</button>
                             </div>
                         </div>
                         <div class="flex justify-between text-sm font-medium text-slate-700 pt-1"><span>Kembalian:</span><span id="change-amount" class="text-blue-600 font-bold">Rp 0</span></div>
@@ -272,7 +272,6 @@
     </div>
 
     <script>
-        // URL WEB APP GOOGLE SHEETS ANDA
         const API_URL = "https://script.google.com/macros/s/AKfycbyvIc1vCLse0fYWPGjFYDkYOmnYySXqPILuVlPtF7mHfna0S6oLpzmw7ntT_z-YoV2x/exec";
 
         let products = [];
@@ -302,7 +301,7 @@
         }
 
         window.onload = function() {
-            loadLocalData(); // Muat data lokal dulu agar aplikasi cepat
+            loadLocalData(); // Muat data lokal agar aplikasi cepat
             loadDataFromCloud(); // Tarik data terbaru dari Google Sheets
 
             // Listener status koneksi internet
@@ -618,9 +617,9 @@
             calculateChange();
         }
 
-        // Fungsi Proses Pembayaran dengan Pencegahan Klik Ganda (Double Click Lock)
+        // --- FUNGSI PROSES PEMBAYARAN DENGAN PENGURANGAN STOK PRESISI & ANTI KLIK GANDA ---
         async function processCheckout() {
-            if (isProcessingCheckout) return; // Mencegah klik ganda
+            if (isProcessingCheckout) return; // Mencegah double click
 
             if (cart.length === 0) { alert('Keranjang kosong!'); return; }
             const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
@@ -628,13 +627,18 @@
             const paid = getRawPayment();
             if (paid < total) { alert('Pembayaran kurang!'); return; }
 
-            isProcessingCheckout = true; // Kunci tombol
+            isProcessingCheckout = true; // Kunci tombol pembayaran
 
+            // 1. Kurangi stok produk secara presisi (Pencocokan ID menggunakan String)
             cart.forEach(item => {
-                const p = products.find(prod => prod.id === item.id);
-                if (p) p.stock -= (item.qty * item.ratio);
+                const p = products.find(prod => String(prod.id) === String(item.id));
+                if (p) {
+                    p.stock -= (item.qty * item.ratio);
+                    if (p.stock < 0) p.stock = 0;
+                }
             });
 
+            // 2. Buat objek transaksi baru
             const newTrx = {
                 id: 'TRX-' + Date.now().toString().slice(-6),
                 rawDate: new Date().toISOString(),
@@ -648,14 +652,17 @@
             };
 
             transactions.unshift(newTrx);
-            saveLocalData();
             
+            // 3. Simpan lokal & sinkronisasi ke cloud
+            saveLocalData();
             await syncProductsToCloud();
             await saveTransactionToCloud(newTrx);
 
+            // 4. Tampilkan struk & perbarui seluruh tampilan
             showReceiptModal(newTrx);
             cart = [];
             document.getElementById('payment-amount').value = '';
+            
             renderCart();
             renderPOSProducts();
             renderProductTable();
