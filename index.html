@@ -74,30 +74,52 @@
                 <div class="w-full md:w-96 bg-white rounded-xl shadow-md p-5 flex flex-col justify-between">
                     <div>
                         <h2 class="text-lg font-bold text-slate-800 mb-3 border-b pb-2"><i class="fa-solid fa-cart-shopping text-emerald-600 mr-2"></i> Keranjang Belanja</h2>
-                        <div id="cart-items" class="space-y-3 overflow-y-auto max-h-52 mb-3 pr-1">
+                        <div id="cart-items" class="space-y-3 overflow-y-auto max-h-48 mb-3 pr-1">
                             <p class="text-slate-400 text-center py-6 text-sm">Keranjang masih kosong</p>
                         </div>
                     </div>
                     <div class="border-t pt-3 space-y-2.5">
                         <div class="flex justify-between text-slate-600 font-medium"><span>Total Item:</span><span id="cart-total-qty">0</span></div>
                         <div class="flex justify-between text-xl font-bold text-slate-800"><span>Total Harga:</span><span id="cart-total-price" class="text-emerald-600">Rp 0</span></div>
-                        <div class="space-y-1.5">
-                            <label class="text-xs font-semibold text-slate-600 uppercase">Jumlah Bayar:</label>
-                            <input type="text" id="payment-amount" placeholder="Rp 0" oninput="formatRupiahInput(this)" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800">
-                            
-                            <div class="grid grid-cols-4 gap-1.5 pt-1">
-                                <button type="button" onclick="setExactPayment()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">Uang Pas</button>
-                                <button type="button" onclick="addQuickPayment(2000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">2 Rb</button>
-                                <button type="button" onclick="addQuickPayment(5000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">5 Rb</button>
-                                <button type="button" onclick="addQuickPayment(10000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">10 Rb</button>
-                                <button type="button" onclick="addQuickPayment(20000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">20 Rb</button>
-                                <button type="button" onclick="addQuickPayment(50000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">50 Rb</button>
-                                <button type="button" onclick="addQuickPayment(100000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-1 rounded text-xs font-semibold transition">100 Rb</button>
-                                <button type="button" onclick="clearPayment()" class="bg-red-50 hover:bg-red-100 text-red-600 py-1.5 px-1 rounded text-xs font-semibold transition">Reset</button>
+                        
+                        <!-- PILIHAN METODE PEMBAYARAN -->
+                        <div class="space-y-1.5 pt-1">
+                            <label class="text-xs font-semibold text-slate-600 uppercase">Metode Pembayaran:</label>
+                            <div class="grid grid-cols-3 gap-1.5">
+                                <button type="button" onclick="setPaymentMethod('cash')" id="btn-method-cash" class="py-1.5 px-2 rounded text-xs font-bold border bg-emerald-600 text-white transition">Tunai</button>
+                                <button type="button" onclick="setPaymentMethod('qris')" id="btn-method-qris" class="py-1.5 px-2 rounded text-xs font-bold border bg-slate-100 text-slate-700 transition">QRIS</button>
+                                <button type="button" onclick="setPaymentMethod('transfer')" id="btn-method-transfer" class="py-1.5 px-2 rounded text-xs font-bold border bg-slate-100 text-slate-700 transition">Transfer</button>
                             </div>
                         </div>
-                        <div class="flex justify-between text-sm font-medium text-slate-700 pt-1"><span>Kembalian:</span><span id="change-amount" class="text-blue-600 font-bold">Rp 0</span></div>
-                        <button onclick="processCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg shadow transition">Proses Pembayaran</button>
+
+                        <!-- KONTEN DINAMIS BERDASARKAN METODE PEMBAYARAN -->
+                        <div id="payment-content-cash" class="space-y-1.5">
+                            <label class="text-xs font-semibold text-slate-600 uppercase">Jumlah Bayar Tunai:</label>
+                            <input type="text" id="payment-amount" placeholder="Rp 0" oninput="formatRupiahInput(this)" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800 text-sm">
+                            <div class="grid grid-cols-4 gap-1.5 pt-1">
+                                <button type="button" onclick="setExactPayment()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-1 rounded text-xs font-semibold">Uang Pas</button>
+                                <button type="button" onclick="addQuickPayment(5000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-1 rounded text-xs font-semibold">5 Rb</button>
+                                <button type="button" onclick="addQuickPayment(10000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-1 rounded text-xs font-semibold">10 Rb</button>
+                                <button type="button" onclick="addQuickPayment(50000)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 px-1 rounded text-xs font-semibold">50 Rb</button>
+                            </div>
+                            <div class="flex justify-between text-sm font-medium text-slate-700 pt-1"><span>Kembalian:</span><span id="change-amount" class="text-blue-600 font-bold">Rp 0</span></div>
+                        </div>
+
+                        <div id="payment-content-qris" class="hidden space-y-2 text-center bg-slate-50 p-2 rounded-lg border">
+                            <p class="text-xs font-medium text-slate-600">Scan QRIS di bawah ini:</p>
+                            <!-- Ganti link src dengan gambar QRIS toko Anda -->
+                            <img src="https://instagram.fdps2-1.fna.fbcdn.net/v/t51.82787-15/843655345_18007994522996347_7915171320034120839_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=110&_nc_map=urlgen_bucketless&ig_cache_key=NDAwNjcyMTk1MTIyMTE2OTY4MA%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQueHBpZHMuODMyLnNkci5yZWd1bGFyX3Bob3RvLkMzIn0%3D&_nc_ohc=R99ED8txKysQ7kNvwH8QHds&_nc_oc=AdpJd88I0rSYsO5vUmsLicJteCKO1h9RvT7nXIheov6vsvF8hpH-tavaoZMx2Jjz1XM&_nc_zt=23&_nc_ht=instagram.fdps2-1.fna&_nc_gid=bK3uzWjFekkYfW8QPGZQFA&_nc_ss=7b2a8&oh=00_AQMaRJLCjB2n8jm3u9GWEy_QzSrKymiJw9403a-khYVdWw&oe=6AD37C67" alt="QRIS Code" class="mx-auto w-28 h-28 border bg-white p-1 rounded">
+                            <p class="text-[11px] text-slate-500">Tunjukkan ke pelanggan untuk dipindai.</p>
+                        </div>
+
+                        <div id="payment-content-transfer" class="hidden space-y-1.5 text-xs bg-slate-50 p-2.5 rounded-lg border text-slate-700">
+                            <p class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-building-columns text-emerald-600 mr-1"></i> Transfer Bank:</p>
+                            <p>Seabank: <span class="font-mono font-bold">901191041870</span> (a.n. Dewa Gede Eka Saputra)</p>
+                          <!--  <p>Mandiri: <span class="font-mono font-bold">0987-6543-21</span> (a.n. Toko Anda)</p>-->
+                            <p class="text-[10px] text-slate-500 mt-1">Pastikan nominal transfer sesuai total belanja.</p>
+                        </div>
+
+                        <button onclick="processCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg shadow transition text-sm">Proses Pembayaran</button>
                     </div>
                 </div>
             </section>
@@ -106,7 +128,7 @@
             <section id="tab-products" class="p-4 md:p-6 flex-1 hidden flex-col">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-2xl font-bold text-slate-800">Kelola Produk</h1>
-                    <button onclick="openProductModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow transition">
+                    <button onclick="openProductModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow transition text-sm">
                         <i class="fa-solid fa-plus mr-2"></i> Tambah Produk
                     </button>
                 </div>
@@ -139,6 +161,7 @@
                                 <tr class="bg-slate-50 border-b text-slate-600 uppercase text-xs">
                                     <th class="p-4">ID Transaksi</th>
                                     <th class="p-4">Waktu</th>
+                                    <th class="p-4">Metode</th>
                                     <th class="p-4">Total Belanja</th>
                                     <th class="p-4 text-emerald-600">Laba Bersih</th>
                                     <th class="p-4 text-center">Aksi</th>
@@ -239,7 +262,7 @@
         </div>
     </div>
 
-    <!-- MODAL PILIH SATUAN (MULTI-UNIT) -->
+    <!-- MODAL PILIH SATUAN -->
     <div id="unit-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-xl w-full max-w-sm p-6 shadow-xl flex flex-col">
             <h3 id="unit-modal-title" class="font-bold text-lg text-slate-800 mb-3">Pilih Satuan Jual</h3>
@@ -259,9 +282,12 @@
                 </div>
                 <div id="receipt-items" class="space-y-1 text-xs text-slate-700 border-b pb-3"></div>
                 <div class="space-y-1 text-xs text-slate-700">
+                    <div class="flex justify-between"><span>Metode Bayar:</span><span id="receipt-method" class="font-semibold uppercase">Tunai</span></div>
                     <div class="flex justify-between font-bold"><span>Total:</span><span id="receipt-total">Rp 0</span></div>
-                    <div class="flex justify-between"><span>Bayar:</span><span id="receipt-paid">Rp 0</span></div>
-                    <div class="flex justify-between"><span>Kembali:</span><span id="receipt-change">Rp 0</span></div>
+                    <div id="receipt-cash-info">
+                        <div class="flex justify-between"><span>Bayar:</span><span id="receipt-paid">Rp 0</span></div>
+                        <div class="flex justify-between"><span>Kembali:</span><span id="receipt-change">Rp 0</span></div>
+                    </div>
                 </div>
             </div>
             <div class="flex gap-2 mt-4">
@@ -277,7 +303,8 @@
         let products = [];
         let transactions = [];
         let cart = [];
-        let isProcessingCheckout = false; // Pengaman klik ganda pembayaran
+        let isProcessingCheckout = false;
+        let selectedPaymentMethod = 'cash'; // Default metode pembayaran
 
         function switchTab(tabId) {
             ['pos', 'products', 'transactions', 'reports'].forEach(id => {
@@ -301,24 +328,15 @@
         }
 
         window.onload = function() {
-            loadLocalData(); // Muat data lokal agar aplikasi cepat
-            loadDataFromCloud(); // Tarik data terbaru dari Google Sheets
-
-            // Listener status koneksi internet
+            loadLocalData();
+            loadDataFromCloud();
             window.addEventListener('online', handleOnlineStatus);
             window.addEventListener('offline', handleOfflineStatus);
-
-            if (navigator.onLine) {
-                handleOnlineStatus();
-            } else {
-                handleOfflineStatus();
-            }
+            if (navigator.onLine) handleOnlineStatus();
+            else handleOfflineStatus();
         };
 
-        function handleOfflineStatus() {
-            document.getElementById('offline-banner').classList.remove('hidden');
-        }
-
+        function handleOfflineStatus() { document.getElementById('offline-banner').classList.remove('hidden'); }
         async function handleOnlineStatus() {
             document.getElementById('offline-banner').classList.add('hidden');
             await syncOfflineQueueToCloud();
@@ -340,7 +358,6 @@
             const savedTrxs = localStorage.getItem('pos_transactions');
             if (savedProds) products = JSON.parse(savedProds);
             if (savedTrxs) transactions = JSON.parse(savedTrxs);
-            
             renderPOSProducts();
             renderProductTable();
             renderTransactionTable();
@@ -354,15 +371,12 @@
                 const data = await response.json();
                 if(data.products) products = data.products;
                 if(data.transactions) transactions = data.transactions;
-                
                 saveLocalData();
                 renderPOSProducts();
                 renderProductTable();
                 renderTransactionTable();
                 renderReports();
-            } catch (err) {
-                console.error("Gagal memuat dari cloud:", err);
-            }
+            } catch (err) { console.error("Gagal memuat dari cloud:", err); }
             showSync(false);
         }
 
@@ -388,7 +402,6 @@
                     body: JSON.stringify({ action: "add_transaction", transaction: newTrx })
                 });
             } catch (err) {
-                console.error("Gagal simpan transaksi, masuk antrean offline:", err);
                 queueOfflineAction({ action: "add_transaction", transaction: newTrx });
             }
         }
@@ -405,7 +418,6 @@
                     body: JSON.stringify({ action: "delete_transaction", id: trxId })
                 });
             } catch (err) {
-                console.error("Gagal hapus transaksi di cloud:", err);
                 queueOfflineAction({ action: "delete_transaction", id: trxId });
             }
         }
@@ -423,24 +435,31 @@
                 if (queue.length > 0) {
                     await syncProductsToCloud();
                     for (let act of queue) {
-                        await fetch(API_URL, {
-                            method: "POST",
-                            body: JSON.stringify(act)
-                        });
+                        await fetch(API_URL, { method: "POST", body: JSON.stringify(act) });
                     }
                     localStorage.removeItem('pos_offline_queue');
                 }
                 await loadDataFromCloud();
-            } catch (err) {
-                console.error("Gagal memproses sinkronisasi offline:", err);
-            }
+            } catch (err) { console.error(err); }
             showSync(false);
         }
 
-        function toggleProductTypeFields() {
-            const type = document.getElementById('product-type').value;
-            document.getElementById('section-single').classList.toggle('hidden', type !== 'single');
-            document.getElementById('section-multi').classList.toggle('hidden', type !== 'multi');
+        // Pengaturan Metode Pembayaran (UI Switch)
+        function setPaymentMethod(method) {
+            selectedPaymentMethod = method;
+            ['cash', 'qris', 'transfer'].forEach(m => {
+                const btn = document.getElementById(`btn-method-${m}`);
+                const content = document.getElementById(`payment-content-${m}`);
+                if (m === method) {
+                    btn.classList.remove('bg-slate-100', 'text-slate-700');
+                    btn.classList.add('bg-emerald-600', 'text-white');
+                    content.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('bg-emerald-600', 'text-white');
+                    btn.classList.add('bg-slate-100', 'text-slate-700');
+                    content.classList.add('hidden');
+                }
+            });
         }
 
         function formatRupiahInput(input) {
@@ -471,11 +490,6 @@
         function addQuickPayment(amt) {
             const cur = getRawPayment();
             document.getElementById('payment-amount').value = 'Rp ' + (cur + amt).toLocaleString('id-ID');
-            calculateChange();
-        }
-
-        function clearPayment() {
-            document.getElementById('payment-amount').value = '';
             calculateChange();
         }
 
@@ -617,19 +631,25 @@
             calculateChange();
         }
 
-        // --- FUNGSI PROSES PEMBAYARAN DENGAN PENGURANGAN STOK PRESISI & ANTI KLIK GANDA ---
+        // Proses Pembayaran Diperbarui Mendukung Tunai, QRIS, & Transfer
         async function processCheckout() {
-            if (isProcessingCheckout) return; // Mencegah double click
+            if (isProcessingCheckout) return;
 
             if (cart.length === 0) { alert('Keranjang kosong!'); return; }
             const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
             const cost = cart.reduce((sum, i) => sum + (i.cost * i.qty), 0);
-            const paid = getRawPayment();
-            if (paid < total) { alert('Pembayaran kurang!'); return; }
 
-            isProcessingCheckout = true; // Kunci tombol pembayaran
+            let paid = total;
+            let change = 0;
 
-            // 1. Kurangi stok produk secara presisi (Pencocokan ID menggunakan String)
+            if (selectedPaymentMethod === 'cash') {
+                paid = getRawPayment();
+                if (paid < total) { alert('Pembayaran tunai kurang!'); return; }
+                change = paid - total;
+            }
+
+            isProcessingCheckout = true;
+
             cart.forEach(item => {
                 const p = products.find(prod => String(prod.id) === String(item.id));
                 if (p) {
@@ -638,30 +658,28 @@
                 }
             });
 
-            // 2. Buat objek transaksi baru
             const newTrx = {
                 id: 'TRX-' + Date.now().toString().slice(-6),
                 rawDate: new Date().toISOString(),
                 date: new Date().toLocaleString('id-ID'),
+                paymentMethod: selectedPaymentMethod.toUpperCase(),
                 items: [...cart],
                 totalQty: cart.reduce((s, i) => s + i.qty, 0),
                 totalPrice: total,
                 totalProfit: total - cost,
                 payment: paid,
-                change: paid - total
+                change: change
             };
 
             transactions.unshift(newTrx);
-            
-            // 3. Simpan lokal & sinkronisasi ke cloud
             saveLocalData();
             await syncProductsToCloud();
             await saveTransactionToCloud(newTrx);
 
-            // 4. Tampilkan struk & perbarui seluruh tampilan
             showReceiptModal(newTrx);
             cart = [];
             document.getElementById('payment-amount').value = '';
+            setPaymentMethod('cash'); // Reset ke tunai
             
             renderCart();
             renderPOSProducts();
@@ -669,11 +687,11 @@
             renderTransactionTable();
             renderReports();
 
-            isProcessingCheckout = false; // Buka kembali kunci tombol
+            isProcessingCheckout = false;
         }
 
         async function deleteTransaction(trxId) {
-            if (confirm('Hapus transaksi ini? (Laporan laba akan disesuaikan kembali)')) {
+            if (confirm('Hapus transaksi ini?')) {
                 transactions = transactions.filter(t => t.id !== trxId);
                 saveLocalData();
                 await deleteTransactionFromCloud(trxId);
@@ -741,6 +759,11 @@
         }
 
         function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); }
+        function toggleProductTypeFields() {
+            const type = document.getElementById('product-type').value;
+            document.getElementById('section-single').classList.toggle('hidden', type !== 'single');
+            document.getElementById('section-multi').classList.toggle('hidden', type !== 'multi');
+        }
 
         async function saveProduct(e) {
             e.preventDefault();
@@ -796,14 +819,16 @@
             const tbody = document.getElementById('transaction-table-body');
             tbody.innerHTML = '';
             if (transactions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada riwayat transaksi</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada riwayat transaksi</td></tr>`;
                 return;
             }
             transactions.forEach(trx => {
+                let methodBadge = `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-bold">${trx.paymentMethod || 'TUNAI'}</span>`;
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50">
                         <td class="p-4 font-mono font-semibold">${trx.id}</td>
                         <td class="p-4 text-slate-500">${trx.date}</td>
+                        <td class="p-4">${methodBadge}</td>
                         <td class="p-4 font-medium">Rp ${trx.totalPrice.toLocaleString('id-ID')}</td>
                         <td class="p-4 text-emerald-600 font-bold">+ Rp ${(trx.totalProfit||0).toLocaleString('id-ID')}</td>
                         <td class="p-4 text-center space-x-2">
@@ -831,14 +856,24 @@
         function showReceiptModal(trx) {
             document.getElementById('receipt-date').innerText = trx.date;
             document.getElementById('receipt-id').innerText = trx.id;
+            document.getElementById('receipt-method').innerText = trx.paymentMethod || 'TUNAI';
+            
             const container = document.getElementById('receipt-items');
             container.innerHTML = '';
             trx.items.forEach(i => {
                 container.innerHTML += `<div class="flex justify-between"><span>${i.name} x${i.qty}</span><span>Rp ${(i.price * i.qty).toLocaleString('id-ID')}</span></div>`;
             });
             document.getElementById('receipt-total').innerText = `Rp ${trx.totalPrice.toLocaleString('id-ID')}`;
-            document.getElementById('receipt-paid').innerText = `Rp ${trx.payment.toLocaleString('id-ID')}`;
-            document.getElementById('receipt-change').innerText = `Rp ${trx.change.toLocaleString('id-ID')}`;
+            
+            const cashInfoEl = document.getElementById('receipt-cash-info');
+            if (trx.paymentMethod === 'CASH' || !trx.paymentMethod) {
+                cashInfoEl.classList.remove('hidden');
+                document.getElementById('receipt-paid').innerText = `Rp ${trx.payment.toLocaleString('id-ID')}`;
+                document.getElementById('receipt-change').innerText = `Rp ${trx.change.toLocaleString('id-ID')}`;
+            } else {
+                cashInfoEl.classList.add('hidden'); // Sembunyikan kembalian jika QRIS/Transfer
+            }
+
             document.getElementById('receipt-modal').classList.remove('hidden');
         }
 
